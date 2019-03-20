@@ -5,7 +5,6 @@ namespace AspNetCore.Totp.Interface
 {
     public interface ITotpGenerator
     {
-
         /// <summary>
         /// Generates a valid TOTP. 
         /// </summary>

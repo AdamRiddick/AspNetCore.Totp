@@ -1,67 +1,65 @@
 ﻿using System;
-using System.Net.Http;
+using System.Text;
 using AspNetCore.Totp.Helper;
 using AspNetCore.Totp.Interface;
 using AspNetCore.Totp.Interface.Models;
+using QRCoder;
+using static QRCoder.PayloadGenerator;
+using static QRCoder.PayloadGenerator.OneTimePassword;
 
 namespace AspNetCore.Totp
 {
     public class TotpSetupGenerator : ITotpSetupGenerator
     {
-        /// <summary>
-        /// Generates an object you will need so that the user can setup his Google Authenticator to be used with your app.
-        /// </summary>
-        /// <param name="issuer">Your app name or company for example.</param>
-        /// <param name="accountIdentity">Name, Email or Id of the user, without spaces, this will be shown in google authenticator.</param>
-        /// <param name="accountSecretKey">A secret key which will be used to generate one time passwords. This key is the same needed for validating a passed TOTP.</param>
-        /// <param name="qrCodeWidth">Height of the QR code. Default is 300px.</param>
-        /// <param name="qrCodeHeight">Width of the QR code. Default is 300px.</param>
-        /// <param name="useHttps">Use Https on google api or not.</param>
-        /// <returns>TotpSetup with ManualSetupKey and QrCode.</returns>
-        public TotpSetup Generate(string issuer, string accountIdentity, string accountSecretKey, int qrCodeWidth = 300, int qrCodeHeight = 300, bool useHttps = true)
+        public TotpSetup Generate(string issuer, string accountIdentity, string accountSecretKey, int qrCodePixelsPerModule = 20)
         {
             Guard.NotNull(issuer);
             Guard.NotNull(accountIdentity);
             Guard.NotNull(accountSecretKey);
 
-            accountIdentity = accountIdentity.Replace(" ", "");
+            accountIdentity = accountIdentity.Replace(" ", string.Empty);
             var encodedSecretKey = Base32.Encode(accountSecretKey);
-            var provisionUrl = UrlEncoder.Encode(string.Format("otpauth://totp/{0}?secret={1}&issuer={2}", accountIdentity, encodedSecretKey, UrlEncoder.Encode(issuer)));
-            var protocol = useHttps ? "https" : "http";
-            var url = $"{protocol}://chart.googleapis.com/chart?cht=qr&chs={qrCodeWidth}x{qrCodeHeight}&chl={provisionUrl}";
+
+            var qrCodeImage = string.Empty;
+            try
+            {
+                var oneTimePassword = new OneTimePassword
+                {
+                    Secret = encodedSecretKey,
+                    Issuer = issuer,
+                    Label = accountIdentity,
+                };
+
+                qrCodeImage = GetQrImage(oneTimePassword, qrCodePixelsPerModule);
+            }
+            catch (Exception)
+            {
+                // Allow execution to continue, as we can still return the manual setup key.
+            }
 
             var totpSetup = new TotpSetup
             {
-                QrCodeImage = this.GetQrImage(url),
+                QrCodeImage = qrCodeImage,
                 ManualSetupKey = encodedSecretKey
             };
 
             return totpSetup;
         }
 
-        private string GetQrImage(string url, int timeoutInSeconds = 30)
+        private string GetQrImage(OneTimePassword oneTimePassword, int qrCodePixelsPerModule)
         {
-            try
-            {
-                var client = new HttpClient { Timeout = TimeSpan.FromSeconds(timeoutInSeconds) };
-                var res = client.GetAsync(url).Result;
+            var qrCodeImageStringBuilder = new StringBuilder();
+            qrCodeImageStringBuilder.Append("data:image/png;base64,");
 
-                if (res.StatusCode == System.Net.HttpStatusCode.OK)
-                {
-                    var imageAsBytes = res.Content.ReadAsByteArrayAsync().Result;
-                    var imageAsString = @"data:image/png;base64," + Convert.ToBase64String(imageAsBytes);
+            var payload = oneTimePassword.ToString();
 
-                    return imageAsString;
-                }
-                else
-                {
-                    throw new Exception("Unexpected result from the Google QR web site.");
-                }
-            }
-            catch (Exception exception)
-            {
-                throw new HttpRequestException("Unexpected result from the Google QR web site.", exception);
-            }
+            var qrCodeGenerator = new QRCodeGenerator();
+            var qrCodeData = qrCodeGenerator.CreateQrCode(payload, QRCodeGenerator.ECCLevel.Q, true);
+            var qrCode = new Base64QRCode(qrCodeData);
+            var base64QrGraphic = qrCode.GetGraphic(qrCodePixelsPerModule);
+            qrCodeImageStringBuilder.Append(base64QrGraphic);
+
+            return qrCodeImageStringBuilder.ToString();
         }
     }
 }

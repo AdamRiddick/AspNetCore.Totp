@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
-    <id>AspNetCore.Totp</id>
-    <version>2.2.0</version>
-    <authors>Damir Kusar,Chris Jones</authors>
-    <owners>Damir Kusar,Chris Jones</owners>
+    <id>AspNetCore.TotpGenerator</id>
+    <version>1.0.0</version>
+    <authors>Adam Riddick</authors>
+    <owners>Adam Riddick</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <licenseUrl>https://github.com/damirkusar/AspNetCore.Totp/blob/master/License.md</licenseUrl>
-    <projectUrl>https://github.com/damirkusar/AspNetCore.Totp</projectUrl>
-    <description>An ASP.NET Core library for generating and validating one time passwords for google authenticator.</description>
+    <license type="expression">MIT</license>
+    <projectUrl>https://github.com/adamriddick/AspNetCore.TotpGenerator</projectUrl>
+    <description>
+      An ASP.NET Core library for generating and validating one time passwords for google authenticator - Forked from https://github.com/damirkusar/AspNetCore.Totp to resolve the issue that google image charts has been deprecated.</description>
     <tags>one time password totp google authenticator authenticator asp.net core otp multi-factor two-factor 2fa 2factor mfa security oath protection authentication</tags>
     <dependencies>
       <group targetFramework=".NETStandard2.0">
-        <dependency id="AspNetCore.Totp.Interface" version="2.2.0" exclude="Build,Analyzers" />
+        <dependency id="QrCoder" version="1.3.5" exclude="Build,Analyzers" />
       </group>
     </dependencies>
   </metadata>
